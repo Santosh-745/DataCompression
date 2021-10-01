@@ -78,6 +78,7 @@ string encode_utility(int l, int u, int *pre_l, int *pre_u, int *scale3){
     //break;  
     *pre_l = bin_l.to_ulong(); 
     *pre_u = bin_u.to_ulong(); 
+    cout<<"\n str "<<str;
     return str;
 }
 
@@ -88,10 +89,10 @@ string encode(string str)
 	int i, ind, pre, pre_l, pre_u, l, u, scale3, x, total, cnt_x, cum_cnt_x, k;     
 	string output;
 
-	unordered_map<char, int> count_0;
-	unordered_map<char, int> cum_count_0;
-	unordered_map<char, int> count_1;
-	unordered_map<char, int> cum_count_1;
+	map<char, int> count_0;
+	map<char, int> cum_count_0;
+	map<char, int> count_1;
+	map<char, int> cum_count_1;
 	map<string, vector<char>> letrs;
 	map<string, vector<int>> cum_count;
 	map<string, vector<int>> count;
@@ -108,9 +109,11 @@ string encode(string str)
 			pre = cum_count_1[it];
 		}
 	}
-	/*for(auto &it: cum_count_1)
-		cout<<"\n "<<it.first<<" "<<it.second;
-
+	count_1['#'] = 1;
+	cum_count_1['#'] = pre + 1;
+	// for(auto &it: cum_count_1)
+	// 	cout<<"\n "<<it.first<<" "<<it.second;
+	/*
 	l = pre_l + ( ((pre_u - pre_l + 1) * cum_count[x-1]) / total);  
 	u = pre_l + ( ((pre_u - pre_l + 1) * cum_count[x]) / total) - 1;  
 	*/     
@@ -118,6 +121,7 @@ string encode(string str)
 	pre_l = 0;
 	pre_u = 255;
 	scale3 = 0;
+	
 	// add first char to 0 order tbl
 	count_0[str[0]] = 1;
 	cum_count_0[str[0]] = 1;
@@ -138,13 +142,13 @@ string encode(string str)
 	// cout<<"\n testing "<<letrs["th"].size();
 	
 	// cout<<get(cntxt_1,str[1],letrs,cum_count);  // testing get func...
-
+	en_str = "";
 	for(ind=2;ind < str.length();ind++)
 	{
 		ltr = str[ind];
 		cntxt_2 = str.substr(ind-2,2);
 		cntxt_1 = str[ind-1];
-		cout<<"\n c2 "<<cntxt_2<<" c1 "<<cntxt_1<<" ltr "<<ltr;
+		cout<<"\n\n c_2 = "<<cntxt_2<<"  c_1 = "<<cntxt_1<<"  ltr = "<<ltr;
 		
 		// if 2nd order context is available or not...
 		if(letrs[cntxt_2].size()){
@@ -175,15 +179,15 @@ string encode(string str)
 				cum_cnt_x = total; // x = esc symbol...
 				k = cum_cnt_x - cnt_x; // cum_cnt(x-1)...
 				
-				cout<<"\n testing cntxt "<<cntxt_2<<" ch "<<ltr;
-				cout<<"\n testing tot "<<total<<" cc "<<cum_cnt_x<<" k "<<k;
+				// cout<<"\n testing cntxt "<<cntxt_2<<" ch "<<ltr;
+				// cout<<"\n testing tot "<<total<<" cc "<<cum_cnt_x<<" k "<<k;
 				l = pre_l + (((pre_u - pre_l + 1) * k) / total);
 				u = pre_l + (((pre_u - pre_l + 1) * cum_cnt_x) / total) - 1;
 
 				en_str = en_str + encode_utility(l, u, &pre_l, &pre_u, &scale3);
 
 				add_ltr(cntxt_2, ltr, letrs, count, cum_count);
-
+				cout<<"\n testing count "<<get(cntxt_2, '#', letrs, cum_count);
 			}
 		}
 		else{
@@ -241,15 +245,41 @@ string encode(string str)
 
 				// now check for 0 order tbl...
 				if(count_0[ltr]){
-						
+					
+					total = count_0['#'];
+					cnt_x = count_0[ltr];
+					cum_cnt_x = cum_count_0[ltr];
+					k = cum_cnt_x - cnt_x; // cum_cnt(x-1)...
+
+					l = pre_l + (((pre_u - pre_l + 1) * k) / total);
+					u = pre_l + (((pre_u - pre_l + 1) * cum_cnt_x) / total) - 1;
+
+					en_str = en_str + encode_utility(l, u, &pre_l, &pre_u, &scale3);
+
+					//update count & cum_count in 0 order table...
+					count_0[ltr]++;
+					auto it = cum_count_0.find(ltr);
+					while(it != cum_count_0.end()){
+						cum_count_0[it->first]++;
+						it++;
+					}
 				}
 				else{
-				// add to 0 order tbl...
-				
+					// add to 0 order tbl...
+					count_0[ltr] = 1;
+					cum_count_0[ltr] = cum_count_0['#'];
+					cum_count_0['#'] += 1;
 
 					// and encode using -1 order tbl...
+					total = count_1['#'];
+					cnt_x = count_1[ltr];
+					cum_cnt_x = cum_count_1[ltr];
+					k = cum_cnt_x - cnt_x; // cum_cnt(x-1)...
 
+					l = pre_l + (((pre_u - pre_l + 1) * k) / total);
+					u = pre_l + (((pre_u - pre_l + 1) * cum_cnt_x) / total) - 1;
 
+					en_str = en_str + encode_utility(l, u, &pre_l, &pre_u, &scale3);
 				}
 			}
 		}
@@ -261,13 +291,14 @@ string encode(string str)
 	// 	}
 	// }
 
-	return output;
+	return en_str;
 }
 
 int main() 
 { 
 	string en_str;
-	string str = "this$is";
+	string str = "this$is$the";
 	cout<<"\n original str "<<str;
 	en_str = encode(str);
+	cout<<"\n encoded "<<en_str;
 }
