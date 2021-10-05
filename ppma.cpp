@@ -42,6 +42,37 @@ void update_cnt(string cntxt, char ltr,  map<string, vector<char>> &l,
 	for(j = i; j < c[cntxt].size(); j++){
 		cc[cntxt][j] += 1;
 	}
+
+	// update count in first order tbl if ihis is 2nd order tbl...
+	if (cntxt.length() == 2){
+		string tmp;
+		tmp = cntxt[1];
+		update_cnt(tmp, ltr, l, c, cc);
+	}
+
+	// update 0th ordr tbl if this is 1st order...
+	if (cntxt.length() == 1)	{
+		update_cnt("", ltr, l, c, cc);
+	}
+}
+
+void display(string cntxt, char ltr,  map<string, vector<char>> &l, 
+		   map<string, vector<int>> &c, map<string, vector<int>> &cc){
+	int i;
+	string tmp;
+
+	if(cntxt.length() == 2)
+		cout<<"\n 2nd order cntxt = "<<cntxt;
+	else if(cntxt.length() == 1)
+		cout<<"\n 1st order cntxt = "<<cntxt;
+	else
+		cout<<"\n 0th order table";
+
+	cout<<"\n letters\tcount\tcum";
+	for(i = 0; i < l[cntxt].size(); i++){
+		cout<<"\n    "<<l[cntxt][i]<<"\t\t  "<<c[cntxt][i]<<"\t"<<cc[cntxt][i];
+	}
+	tmp = cntxt[1];
 }
 
 string encode_utility(int l, int u, int *pre_l, int *pre_u, int *scale3){
@@ -59,9 +90,9 @@ string encode_utility(int l, int u, int *pre_l, int *pre_u, int *scale3){
             bin_l <<= 1; 
             bin_u <<= 1; 
             bin_u[0] = 1; 
-            while(*scale3 > 0){ 
+            while((*scale3) > 0){ 
                  str += (b==0)?"1":"0"; 
-                 *scale3 -= 1; 
+                 (*scale3) -= 1; 
             } 
             cout<<"\n binl "<<bin_l<<" binu "<<bin_u; 
         } 
@@ -72,7 +103,7 @@ string encode_utility(int l, int u, int *pre_l, int *pre_u, int *scale3){
             bin_u[7] = 1; 
             bin_l[7] = 0; 
             *scale3 += 1;
-             cout<<"\n binl "<<bin_l<<" binu "<<bin_u<<" scale3 "<<scale3; 
+             cout<<"\n binl "<<bin_l<<" binu "<<bin_u<<" scale3 "<<*scale3; 
         } 
     } 
     //break;  
@@ -86,11 +117,8 @@ string encode(string str)
 {
 	string cntxt_1,cntxt_2, en_str;
 	char ltr;
-	int i, ind, pre, pre_l, pre_u, l, u, scale3, x, total, cnt_x, cum_cnt_x, k;     
-	string output;
+	int i, ind, pre, pre_l, pre_u, l, u, scale3, x, total, cnt_x, cum_cnt_x, k;
 
-	map<char, int> count_0;
-	map<char, int> cum_count_0;
 	map<char, int> count_1;
 	map<char, int> cum_count_1;
 	map<string, vector<char>> letrs;
@@ -122,18 +150,19 @@ string encode(string str)
 	pre_u = 255;
 	scale3 = 0;
 	
-	// add first char to 0 order tbl
-	count_0[str[0]] = 1;
-	cum_count_0[str[0]] = 1;
+	// add first two chars to 0 order tbl
+	add_cntxt("", str[0], letrs, count, cum_count, 1, 1);
+	add_cntxt("", str[1], letrs, count, cum_count, 1, 2);
 
 	// add esc to 0 order tbl
-	count_0['#'] = 1;
-	cum_count_0['#'] = 2;
+	add_cntxt("", '#', letrs, count, cum_count, 1, 3);	
 
-	// add first char to 1 order tbl with ltr and esc...
+	// add first 2 chars to 1st order tbl with ltr and esc...
 	cntxt_1 = str[0];
 	add_cntxt(cntxt_1,str[1],letrs,count,cum_count,1,1);
 	add_cntxt(cntxt_1,'#',letrs,count,cum_count,1,2);
+	cntxt_1 = str[1];
+	add_cntxt(cntxt_1,'#',letrs,count,cum_count,1,1);
 
 	// add first two char to 2nd order tbl with esc symbol...
 	cntxt_2 = str.substr(0,2);
@@ -143,17 +172,19 @@ string encode(string str)
 	
 	// cout<<get(cntxt_1,str[1],letrs,cum_count);  // testing get func...
 	en_str = "";
-	for(ind=2;ind < str.length();ind++)
+	for(ind=2;ind < str.length(); ind++)
 	{
 		ltr = str[ind];
 		cntxt_2 = str.substr(ind-2,2);
 		cntxt_1 = str[ind-1];
-		cout<<"\n\n c_2 = "<<cntxt_2<<"  c_1 = "<<cntxt_1<<"  ltr = "<<ltr;
-		
+		cout<<"\n\n\n c_2 = "<<cntxt_2<<"  c_1 = "<<cntxt_1<<"  ltr = "<<ltr;
+		display(cntxt_2, ltr, letrs, count, cum_count);		
+		display(cntxt_1, ltr, letrs, count, cum_count);		
+		display("", ltr, letrs, count, cum_count);		
 		// if 2nd order context is available or not...
 		if(letrs[cntxt_2].size()){
 		//if yes then check letter...
-			
+			cout<<"\nencoding in cntxt 2";
 			if(std::count(letrs[cntxt_2].begin(), letrs[cntxt_2].end(), ltr)){
 			// if letter is also there, then encode it and update count...
 			
@@ -164,12 +195,15 @@ string encode(string str)
 				cum_cnt_x = get(cntxt_2, ltr, letrs, cum_count);
 				k = cum_cnt_x - cnt_x; // cum_cnt(x-1)...
 
+				cout<<"\n total "<<total<<" cnt "<<cnt_x<<" cum_cnt "<<cum_cnt_x<<" k "<<k<<" prel "<<pre_l<<" pre_u "<<pre_u;
 				l = pre_l + (((pre_u - pre_l + 1) * k) / total);
 				u = pre_l + (((pre_u - pre_l + 1) * cum_cnt_x) / total) - 1;
-
+				cout<<"\n l "<<l<<" u "<<u;
 				en_str = en_str + encode_utility(l, u, &pre_l, &pre_u, &scale3);
 					
 				update_cnt(cntxt_2, ltr, letrs, count, cum_count);
+				display(cntxt_2, ltr, letrs, count, cum_count);
+				continue;
 			}
 			else{
 			//if cntxt is there but not the letter then encode esc symbol and add ltr...
@@ -179,109 +213,117 @@ string encode(string str)
 				cum_cnt_x = total; // x = esc symbol...
 				k = cum_cnt_x - cnt_x; // cum_cnt(x-1)...
 				
-				// cout<<"\n testing cntxt "<<cntxt_2<<" ch "<<ltr;
-				// cout<<"\n testing tot "<<total<<" cc "<<cum_cnt_x<<" k "<<k;
+				cout<<"\n total "<<total<<" cnt "<<cnt_x<<" cum_cnt "<<cum_cnt_x<<" k "<<k<<" prel "<<pre_l<<" pre_u "<<pre_u;
 				l = pre_l + (((pre_u - pre_l + 1) * k) / total);
 				u = pre_l + (((pre_u - pre_l + 1) * cum_cnt_x) / total) - 1;
-
+				cout<<"\n l "<<l<<" u "<<u;
 				en_str = en_str + encode_utility(l, u, &pre_l, &pre_u, &scale3);
 
 				add_ltr(cntxt_2, ltr, letrs, count, cum_count);
-				cout<<"\n testing count "<<get(cntxt_2, '#', letrs, cum_count);
+				// cout<<"\n testing count "<<get(cntxt_2, '#', letrs, cum_count);
+				display(cntxt_2, ltr, letrs, count, cum_count);
 			}
 		}
 		else{
-
 			// if context is not there add it with ltr and esc...
 			add_cntxt(cntxt_2,ltr,letrs,count,cum_count,1,1);
 			
 			// add esc...
 			add_cntxt(cntxt_2,'#',letrs,count,cum_count,1,2);
-
-			// now check for 1st order context is available or not...
-			if(letrs[cntxt_1].size()){
-			//if yes then check ltr...
-				
-
-				if(std::count(letrs[cntxt_1].begin(), letrs[cntxt_1].end(), ltr)){
-				// if letter is also there, then encode it and update count...
-					total = get(cntxt_1, '#', letrs, cum_count);
-					cnt_x = get(cntxt_1, ltr, letrs, count);
-					cum_cnt_x = get(cntxt_1, ltr, letrs, cum_count);
-					k = cum_cnt_x - cnt_x; // cum_cnt(x-1)...
-
-					l = pre_l + (((pre_u - pre_l + 1) * k) / total);
-					u = pre_l + (((pre_u - pre_l + 1) * cum_cnt_x) / total) - 1;
-
-					en_str = en_str + encode_utility(l, u, &pre_l, &pre_u, &scale3);
-						
-					update_cnt(cntxt_1, ltr, letrs, count, cum_count);	
-				}
-				else{
-				//if cntxt is there but not the letter then encode esc symbol and add ltr...
-					total = get(cntxt_1, '#', letrs, cum_count);
-					cnt_x = get(cntxt_1, '#', letrs, count);
-					cum_cnt_x = total; // x = esc symbol...
-					k = cum_cnt_x - cnt_x; // cum_cnt(x-1)...
+			display(cntxt_2, ltr, letrs, count, cum_count);
+		}
+		// now check for 1st order context is available or not...
+		if(letrs[cntxt_1].size()){
+		//if yes then check ltr...	
+			cout<<"\nencoding in cntxt 1";
+			if(std::count(letrs[cntxt_1].begin(), letrs[cntxt_1].end(), ltr)){
+			// if letter is also there, then encode it and update count...
+				total = get(cntxt_1, '#', letrs, cum_count);
+				cnt_x = get(cntxt_1, ltr, letrs, count);
+				cum_cnt_x = get(cntxt_1, ltr, letrs, cum_count);
+				k = cum_cnt_x - cnt_x; // cum_cnt(x-1)...
+				cout<<"\n total "<<total<<" cnt "<<cnt_x<<" cum_cnt "<<cum_cnt_x<<" k "<<k<<" prel "<<pre_l<<" pre_u "<<pre_u;
+				l = pre_l + (((pre_u - pre_l + 1) * k) / total);
+				u = pre_l + (((pre_u - pre_l + 1) * cum_cnt_x) / total) - 1;
+				cout<<"\n l "<<l<<" u "<<u;
+				en_str = en_str + encode_utility(l, u, &pre_l, &pre_u, &scale3);
 					
-					cout<<"\n testing cntxt "<<cntxt_2<<" ch "<<ltr;
-					cout<<"\n testing tot "<<total<<" cc "<<cum_cnt_x<<" k "<<k;
-					l = pre_l + (((pre_u - pre_l + 1) * k) / total);
-					u = pre_l + (((pre_u - pre_l + 1) * cum_cnt_x) / total) - 1;
-
-					en_str = en_str + encode_utility(l, u, &pre_l, &pre_u, &scale3);
-
-					add_ltr(cntxt_1, ltr, letrs, count, cum_count);
-				
-				}
+				update_cnt(cntxt_1, ltr, letrs, count, cum_count);
+				display(cntxt_1, ltr, letrs, count, cum_count);
+				continue;			
 			}
 			else{
+			//if cntxt is there but not the letter then encode esc symbol and add ltr...
+				total = get(cntxt_1, '#', letrs, cum_count);
+				cnt_x = total;
+				cum_cnt_x = total; // x = esc symbol...
+				k = cum_cnt_x - cnt_x; // cum_cnt(x-1)...
 				
-				// if context is not there add it with ltr and esc...
-				add_cntxt(cntxt_1,ltr,letrs,count,cum_count,1,1);
-				
-				// add esc...
-				add_cntxt(cntxt_1,'#',letrs,count,cum_count,1,2);
+				cout<<"\n total "<<total<<" cnt "<<cnt_x<<" cum_cnt "<<cum_cnt_x<<" k "<<k<<" prel "<<pre_l<<" pre_u "<<pre_u;
+				l = pre_l + (((pre_u - pre_l + 1) * k) / total);
+				u = pre_l + (((pre_u - pre_l + 1) * cum_cnt_x) / total) - 1;
+				cout<<"\n l "<<l<<" u "<<u;
+				en_str = en_str + encode_utility(l, u, &pre_l, &pre_u, &scale3);
 
-				// now check for 0 order tbl...
-				if(count_0[ltr]){
-					
-					total = count_0['#'];
-					cnt_x = count_0[ltr];
-					cum_cnt_x = cum_count_0[ltr];
-					k = cum_cnt_x - cnt_x; // cum_cnt(x-1)...
-
-					l = pre_l + (((pre_u - pre_l + 1) * k) / total);
-					u = pre_l + (((pre_u - pre_l + 1) * cum_cnt_x) / total) - 1;
-
-					en_str = en_str + encode_utility(l, u, &pre_l, &pre_u, &scale3);
-
-					//update count & cum_count in 0 order table...
-					count_0[ltr]++;
-					auto it = cum_count_0.find(ltr);
-					while(it != cum_count_0.end()){
-						cum_count_0[it->first]++;
-						it++;
-					}
-				}
-				else{
-					// add to 0 order tbl...
-					count_0[ltr] = 1;
-					cum_count_0[ltr] = cum_count_0['#'];
-					cum_count_0['#'] += 1;
-
-					// and encode using -1 order tbl...
-					total = count_1['#'];
-					cnt_x = count_1[ltr];
-					cum_cnt_x = cum_count_1[ltr];
-					k = cum_cnt_x - cnt_x; // cum_cnt(x-1)...
-
-					l = pre_l + (((pre_u - pre_l + 1) * k) / total);
-					u = pre_l + (((pre_u - pre_l + 1) * cum_cnt_x) / total) - 1;
-
-					en_str = en_str + encode_utility(l, u, &pre_l, &pre_u, &scale3);
-				}
+				add_ltr(cntxt_1, ltr, letrs, count, cum_count);
+				display(cntxt_1, ltr, letrs, count, cum_count);
 			}
+		}
+		else{
+			// if context is not there add it with ltr and esc...
+			add_cntxt(cntxt_1,ltr,letrs,count,cum_count,1,1);
+			
+			// add esc...
+			add_cntxt(cntxt_1,'#',letrs,count,cum_count,1,2);
+			display(cntxt_1, ltr, letrs, count, cum_count);
+		}
+		// now check for 0 order tbl...
+		if(std::count(letrs[""].begin(), letrs[""].end(), ltr)){
+			cout<<"\nencoding in cntxt 0";	
+			total = get("", '#', letrs, cum_count);
+			cnt_x = get(cntxt_1, ltr, letrs, count);
+			cum_cnt_x = get(cntxt_1, ltr, letrs, cum_count);
+			k = cum_cnt_x - cnt_x; // cum_cnt(x-1)...
+			cout<<"\n total "<<total<<" cnt "<<cnt_x<<" cum_cnt "<<cum_cnt_x<<" k "<<k<<" prel "<<pre_l<<" pre_u "<<pre_u;
+			l = pre_l + (((pre_u - pre_l + 1) * k) / total);
+			u = pre_l + (((pre_u - pre_l + 1) * cum_cnt_x) / total) - 1;	
+			cout<<"\n l "<<l<<" u "<<u;
+			en_str = en_str + encode_utility(l, u, &pre_l, &pre_u, &scale3);
+
+			//update count & cum_count in 0 order table...
+			update_cnt("", ltr, letrs, count, cum_count);
+			display("", ltr, letrs, count, cum_count);
+		}
+		else{
+			// if not in 0th order tbl encode esc symbol...
+			cout<<"\n encoding esc symbol in 0th order ";
+			total = get("", '#', letrs, cum_count);
+			cnt_x = get(cntxt_1, '#', letrs, count);
+			cum_cnt_x = total;
+			k = cum_cnt_x - cnt_x; // cum_cnt(x-1)...
+			cout<<"\n total "<<total<<" cnt "<<cnt_x<<" cum_cnt "<<cum_cnt_x<<" k "<<k<<" prel "<<pre_l<<" pre_u "<<pre_u;
+			l = pre_l + (((pre_u - pre_l + 1) * k) / total);
+			u = pre_l + (((pre_u - pre_l + 1) * cum_cnt_x) / total) - 1;	
+			cout<<"\n l "<<l<<" u "<<u;
+			en_str = en_str + encode_utility(l, u, &pre_l, &pre_u, &scale3);
+
+			// add ltr to 0 order tbl...
+			add_ltr("", ltr, letrs, count, cum_count);
+
+			display("", ltr, letrs, count, cum_count);
+
+
+			cout<<"\nencodig uding cntxt -1";
+			// and encode using -1 order tbl...
+			total = cum_count_1['#'];
+			cnt_x = count_1[ltr];
+			cum_cnt_x = cum_count_1[ltr];
+			k = cum_cnt_x - cnt_x; // cum_cnt(x-1)...
+			cout<<"\n total "<<total<<" cnt "<<cnt_x<<" cum_cnt "<<cum_cnt_x<<" k "<<k<<" prel "<<pre_l<<" pre_u "<<pre_u;
+			l = pre_l + (((pre_u - pre_l + 1) * k) / total);
+			u = pre_l + (((pre_u - pre_l + 1) * cum_cnt_x) / total) - 1;
+			cout<<"\n l "<<l<<" u "<<u;
+			en_str = en_str + encode_utility(l, u, &pre_l, &pre_u, &scale3);
 		}
 	}
 	// for(auto &it: letrs){
